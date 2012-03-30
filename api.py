@@ -42,7 +42,7 @@ class LookUp():
             params['address'] = self.address
         
         if self.latlng:
-            params['latlng'] = self.latlng
+            params['latlng'] = ",".join(((i.strip()) for i in self.latlng.split(",")))
         
         if self.bounds:
             params['bounds'] = self.bounds

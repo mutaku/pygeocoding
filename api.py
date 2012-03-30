@@ -9,7 +9,7 @@ class LookUpError(Exception):
     def __str__(self):
         return repr(value)
 
-def LookUp(method="http", output="json", address=None, latlg=None, bounds=None, region=None, language=None, sensor=False):
+def LookUp(method="http", output="json", address=None, latlng=None, bounds=None, region=None, language=None, sensor=False):
     method = method.lower()
     output = output.lower()
     
@@ -21,7 +21,7 @@ def LookUp(method="http", output="json", address=None, latlg=None, bounds=None, 
     if output not in output_types:
         raise LookUpError('Output type not %s' % (' or '.join(output_types)))
     
-    if address and latlg:
+    if address and latlng:
         raise LookUpError('Supplied both forward and reverse lookup. Need one or the either.')
     
     params = dict()
@@ -34,8 +34,8 @@ def LookUp(method="http", output="json", address=None, latlg=None, bounds=None, 
     if address:
         params['address'] = address
     
-    if latlg:
-        params['latlg'] = latlg
+    if latlng:
+        params['latlng'] = latlng
     
     if bounds:
         params['bounds'] = bounds

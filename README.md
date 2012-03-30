@@ -21,6 +21,5 @@ pygeocoding.LookUp(address="CERN CH-1211 Genève 23 Switzerland")
 # We can also search backwards - let's pipe in the lat/long of the liberty bell (approximately)
 # - we'll just see what the first result is
 r = pygeocoding.LookUp(latlng="39.9518819802915,-75.1476150197085")
-r['result'][0]
 
 ```

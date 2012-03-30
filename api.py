@@ -1,6 +1,7 @@
 import urllib2
 import urllib
-import json    
+import json
+from xml.dom import minidom as xml
 
 class LookUpError(Exception):
     def __init__(self, value):
@@ -9,7 +10,8 @@ class LookUpError(Exception):
         return repr(self.value)
 
 class LookUp():
-    def __init__(self, output="json", address=None, latlg=None, bounds=None, region=None, language=None, sensor=False):
+    def __init__(self, method="http", output="json", address=None, latlg=None, bounds=None, region=None, language=None, sensor=False):
+        self.method = method.lower()
         self.output = output.lower()
         self.address = address
         self.latlg = latlg
@@ -17,6 +19,10 @@ class LookUp():
         self.region = region
         self.language = language
         self.sensor = sensor
+        
+        method_types = ['https', 'http']
+        if self.method not in method_types:
+            raise LookUpError('Method type not %s' % (' or '.join(method_types)))
         
         output_types = ['json', 'xml']
         if self.output not in output_types:
@@ -26,9 +32,8 @@ class LookUp():
             raise LookUpError('Supplied both forward and reverse lookup. Need one or the either.')
     
     def __call__(self, **kwargs):
-        kwargs['output'] = self.output
         kwargs['sensor'] = self.sensor
-        
+
         if self.address:
             kwargs['address'] = self.address
         
@@ -48,12 +53,33 @@ class LookUp():
         
         req_string = "&".join("%s=%s" % (k, urllib.quote_plus(params[k])) for k in params.keys())
         req_string = "?".join((self.output, req_string))
-        base_url = "http://maps.googleapis.com/maps/api/geocode/"
+        base_url = "".join((self.method, "://maps.googleapis.com/maps/api/geocode/"))
         full_url = "".join((base_url, req_string))
         
-        req = urllib2.Request(full_url)
-        result = urllib2.urlopen(req)
-        
-        # now we use either json.loads or xml minidom parser depending on output
-        # check for status ZERO_RESULTS or OK and either return result or error
-        
+        try:
+            req = urllib2.Request(full_url)
+            req_result = urllib2.urlopen(req).read()
+        except urllib2.URLError, e:
+            raise LookUpError('IOError error: %s' % e)
+        except urllib2.HTTPError, e:
+            raise LookUpError('HTTP error: %s ' % e)
+
+        if self.output == 'xml':
+            result = xml.parseString(req_result)
+            status = result.getElementsByTagName('status')[0].childNodes[0].data
+        else:
+            
+            result = json.loads(req_result)
+            status = result['status']
+            
+        status_returns = {
+            "ZERO_RESULTS" : "indicates that the geocode was successful but returned no results. This may occur if the geocode was passed a non-existent address or a latlng in a remote location.",
+            "OVER_QUERY_LIMIT" : "indicates that you are over your quota.",
+            "REQUEST_DENIED" : "indicates that your request was denied, generally because of lack of a sensor parameter.",
+            "INVALID_REQUEST" : "generally indicates that the query (address or latlng) is missing."
+        }
+        if status != "OK":
+            raise LookUpError(" ".join((status, status_returns[status])))
+        else:
+            # Should we really return an dom object... we did this above as either using minidom or we made a json object through loads
+            return result
